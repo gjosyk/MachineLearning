@@ -77,7 +77,7 @@ ctrl <- trainControl(classProbs=TRUE,
 method <- "rf"
 system.time(trainingModel <- train(classe ~ ., data=CenteredandScaledTrainData, method=method))
 ```
-### Results
+### Results and Out of Sample Error rate
 Use a confustion matrix to evaluate the model on the training data
 ```{r}
 trainingModel
@@ -89,13 +89,13 @@ Use a confusion matrix to evaluate the model on the initial test data, that is a
 hat <- predict(trainingModel, CenteredandScaledTestData)
 confusionMatrix(hat, CenteredandScaledTestData[, classe])
 ```
-The final model
+The final model - The estimated error rate is less than 1%.
 ```{r}
 varImp(trainingModel)
 trainingModel$finalModel
 ```
 
-Finally, get the predictions and evaluate on the final test data set
+Finally, get the predictions and evaluate on the final test data set.  We find that the model accurately predicts over 99 % of the test cases.
 ```{r}
 CenterednandScaledFinalTest <- predict(preProcData, TestData[, predictionCandidates, with=FALSE])
 hat <- predict(trainingModel, CenterednandScaledFinalTest)

@@ -164,10 +164,10 @@ system.time(trainingModel &lt;- train(classe ~ ., data=CenteredandScaledTrainDat
 ## randomForest 4.6-12
 ## Type rfNews() to see new features/changes/bug fixes.</code></pre>
 <pre><code>##    user  system elapsed 
-## 4400.80   18.17 4521.03</code></pre>
+## 4520.38   18.94 4678.62</code></pre>
 </div>
-<div id="results" class="section level3">
-<h3>Results</h3>
+<div id="results-and-out-of-sample-error-rate" class="section level3">
+<h3>Results and Out of Sample Error rate</h3>
 <p>Use a confustion matrix to evaluate the model on the training data</p>
 <pre class="r"><code>trainingModel</code></pre>
 <pre><code>## Random Forest 
@@ -255,7 +255,7 @@ confusionMatrix(hat, CenteredandScaledTestData[, classe])</code></pre>
 ## Detection Rate         0.2840   0.1913   0.1730   0.1612   0.1825
 ## Detection Prevalence   0.2854   0.1928   0.1765   0.1625   0.1828
 ## Balanced Accuracy      0.9981   0.9935   0.9938   0.9911   0.9964</code></pre>
-<p>The final model</p>
+<p>The final model - The estimated error rate is less than 1%.</p>
 <pre class="r"><code>varImp(trainingModel)</code></pre>
 <pre><code>## rf variable importance
 ## 
@@ -298,7 +298,7 @@ confusionMatrix(hat, CenteredandScaledTestData[, classe])</code></pre>
 ## C    0    8 2034   12    0 0.009737098
 ## D    0    1   30 1896    3 0.017616580
 ## E    0    1    5   10 2149 0.007390300</code></pre>
-<p>Finally, get the predictions and evaluate on the final test data set</p>
+<p>Finally, get the predictions and evaluate on the final test data set. We find that the model accurately predicts over 99 % of the test cases.</p>
 <pre class="r"><code>CenterednandScaledFinalTest &lt;- predict(preProcData, TestData[, predictionCandidates, with=FALSE])
 hat &lt;- predict(trainingModel, CenterednandScaledFinalTest)
 TestData &lt;- cbind(hat , TestData)
