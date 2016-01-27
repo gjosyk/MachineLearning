@@ -1,0 +1,108 @@
+---
+output: html_document
+---
+
+### Practical Machine Learning Course Project
+Greg Osyk
+1/26/2016
+  
+### Background
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+Data
+The training data for this project are available here:
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+The test data are available here:
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+The goal of this project is to predict the manner in which they did the exercise. 
+
+
+### Exploratory Data Analysis
+First we load the datasets and do some preliminary processing.
+```{r}
+require(data.table)
+require(caret)
+require(randomforest)
+setInternet2(TRUE)
+url <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+TrainData <- fread(url)
+url <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+TestData <- fread(url)
+
+checkForMissingData <- sapply(TestData, function (x) any(is.na(x) | x == ""))
+predictor <- !checkForMissingData & grepl("belt|[^(fore)]arm|dumbbell|forearm", names(checkForMissingData))
+predictionCandidates <- names(checkForMissingData)[predictor]
+predictionCandidates
+```
+Next, we subset the primary dataset to include only the predictor candidates and the outcome variable, classe, which we then make into a factor.
+```{r}
+variables <- c("classe", predictionCandidates)
+TrainData <- TrainData[, variables, with=FALSE]
+TrainData <- TrainData[, classe := factor(TrainData[, classe])]
+TrainData[, .N, classe]
+```
+### Partition the Data
+Partition the Training dataset into two datasets: 60% for Training, 40% for Testing:
+```{r}
+set.seed(12345)
+initialTrain <- createDataPartition(TrainData$classe, p=0.6)
+TrainingData <- TrainData[initialTrain[[1]]]
+initialTestData <- TrainData[-initialTrain[[1]]]
+```
+### Process the Data
+Preprocess the prediction variables by centering and scaling.
+```{r}
+X <- TrainingData[, predictionCandidates, with=FALSE]
+preProcData <- preProcess(X)
+preProcData
+
+CenteredandScaled <- predict(preProcData, X)
+CenteredandScaledTrainData <- data.table(data.frame(classe = TrainingData[, classe], CenteredandScaled))
+```
+Center and Scale the initial test data set
+```{r}
+X <- initialTestData[, predictionCandidates, with=FALSE]
+CenteredandScaled <- predict(preProcData, X)
+CenteredandScaledTestData <- data.table(data.frame(classe = initialTestData[, classe], CenteredandScaled))
+```
+### Create the ML Model
+Use a random forest to create the training model
+```{r}
+ctrl <- trainControl(classProbs=TRUE,
+                     savePredictions=TRUE,
+                     allowParallel=TRUE)
+
+method <- "rf"
+system.time(trainingModel <- train(classe ~ ., data=CenteredandScaledTrainData, method=method))
+```
+### Results
+Use a confustion matrix to evaluate the model on the training data
+```{r}
+trainingModel
+hat <- predict(trainingModel, CenteredandScaledTrainData)
+confusionMatrix(hat, TrainingData[, classe])
+```
+Use a confusion matrix to evaluate the model on the initial test data, that is a subset of inital training dataset
+```{r}
+hat <- predict(trainingModel, CenteredandScaledTestData)
+confusionMatrix(hat, CenteredandScaledTestData[, classe])
+```
+The final model
+```{r}
+varImp(trainingModel)
+trainingModel$finalModel
+```
+
+Finally, get the predictions and evaluate on the final test data set
+```{r}
+CenterednandScaledFinalTest <- predict(preProcData, TestData[, predictionCandidates, with=FALSE])
+hat <- predict(trainingModel, CenterednandScaledFinalTest)
+TestData <- cbind(hat , TestData)
+subset(TestData, select=names(TestData)[grep("belt|[^(fore)]arm|dumbbell|forearm", names(TestData), invert=TRUE)])
+```
+
+
+
+
